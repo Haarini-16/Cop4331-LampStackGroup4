@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team 4 Lamp Project - Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: url("WebsiteBackground.png");
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 380px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .primary {
+            background: #6ce5f5;
+            color: white;
+        }
+
+        .primary:hover {
+            background: #60daeb;
+        }
+
+        .success {
+            background: #47b0ed;
+            color: white;
+        }
+
+        .success:hover {
+            background: #3180ad;
+        }
+
+        .secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .secondary:hover {
+            background: #4f555b;
+            color: white;
+        }
+
+        .divider {
+            text-align: center;
+            color: #888;
+            margin: 20px 0;
+        }
+
+        .message {
+            display: none;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #1a5127;
+        }
+
+        #signupForm {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LOGIN -->
+    <div id="loginForm">
+
+        <h1>Login</h1>
+
+        <div id="loginMessage" class="message"></div>
+
+        <form onsubmit="login(event)">
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="primary">
+                Log In
+            </button>
+
+        </form>
+
+        <div class="divider">
+            or
+        </div>
+
+        <button
+            type="button"
+            class="success"
+            onclick="showSignup()"
+        >
+            Create New User
+        </button>
+
+    </div>
+
+
+    <!-- SIGNUP -->
+    <div id="signupForm">
+
+        <h1>Create User</h1>
+
+        <div id="signupMessage" class="message"></div>
+
+        <form onsubmit="signup(event)">
+
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input
+                    type="text"
+                    id="firstName"
+                    maxlength="50"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input
+                    type="text"
+                    id="lastName"
+                    maxlength="50"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="newLogin">Username</label>
+                <input
+                    type="text"
+                    id="newLogin"
+                    maxlength="50"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">Password</label>
+                <input
+                    type="password"
+                    id="newPassword"
+                    required
+                    autocomplete="new-password"
+                >
+            </div>
+
+            <button type="submit" class="success">
+                Create Account
+            </button>
+
+        </form>
+
+        <div class="divider">
+            or
+        </div>
+
+        <button
+            type="button"
+            class="secondary"
+            onclick="showLogin()"
+        >
+            Back to Login
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    /*
+     * Change this if your API is located somewhere else.
+     *
+     * Example:
+     * const API_URL = "https://example.com/api/index.php";
+     */
+    const API_URL = "/api/index.php";
+
+
+    function showSignup() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("signupForm").style.display = "block";
+
+        clearMessages();
+    }
+
+
+    function showLogin() {
+        document.getElementById("signupForm").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+
+        clearMessages();
+    }
+
+
+    function clearMessages() {
+        document.getElementById("loginMessage").style.display = "none";
+        document.getElementById("signupMessage").style.display = "none";
+    }
+
+
+    function showMessage(elementId, message, success = false) {
+        const element = document.getElementById(elementId);
+
+        element.textContent = message;
+        element.className = "message " +
+            (success ? "success-message" : "error");
+
+        element.style.display = "block";
+    }
+
+
+    // ---------------------------------------------------------
+    // LOGIN
+    // ---------------------------------------------------------
+
+    async function login(event) {
+        event.preventDefault();
+
+        const loginValue =
+            document.getElementById("Username").value.trim();
+
+        const password =
+            document.getElementById("password").value;
+
+        try {
+
+            const response = await fetch(API_URL, {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    login: loginValue,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                showMessage(
+                    "loginMessage",
+                    data.error || "Login failed."
+                );
+                return;
+            }
+
+            /*
+             * Your API currently returns the user's information
+             * but does not create a session/token.
+             *
+             * For now we store the returned user information.
+             */
+            sessionStorage.setItem(
+                "user",
+                JSON.stringify(data)
+            );
+
+            showMessage(
+                "loginMessage",
+                "Login successful!",
+                true
+            );
+
+            console.log("Logged in user:", data);
+
+            // Example redirect:
+            // window.location.href = "colors.html";
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                "loginMessage",
+                "Could not connect to the server."
+            );
+        }
+    }
+
+
+    // ---------------------------------------------------------
+    // SIGNUP
+    // ---------------------------------------------------------
+
+    async function signup(event) {
+        event.preventDefault();
+
+        const firstName =
+            document.getElementById("firstName").value.trim();
+
+        const lastName =
+            document.getElementById("lastName").value.trim();
+
+        const login =
+            document.getElementById("newLogin").value.trim();
+
+        const password =
+            document.getElementById("newPassword").value;
+
+
+        try {
+
+            const response = await fetch(
+                API_URL + "?action=signup",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        firstName: firstName,
+                        lastName: lastName,
+                        login: login,
+                        password: password
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+
+            if (!response.ok) {
+
+                showMessage(
+                    "signupMessage",
+                    data.error || "Could not create account."
+                );
+
+                return;
+            }
+
+
+            showMessage(
+                "signupMessage",
+                "Account created successfully! You can now log in.",
+                true
+            );
+
+
+            // Clear signup form
+            document.getElementById("firstName").value = "";
+            document.getElementById("lastName").value = "";
+            document.getElementById("newLogin").value = "";
+            document.getElementById("newPassword").value = "";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                "signupMessage",
+                "Could not connect to the server."
+            );
+        }
+    }
+
+</script>
+
+</body>
+</html>

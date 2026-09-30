@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Contacts</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------- Colors ---------- */
+    :root {
+      --page-bg:      #bfe6f2;   /* very light pastel blue */
+      --panel-bg:     #f8fbff;   /* header, table, dialogs */
+      --row-alt-bg:   #eff6fd;   /* every second contact row */
+      --border:       #cfe2f3;
+
+      --text:         #1f3a56;
+      --text-muted:   #5b7896;
+
+      --accent:       #4a90d9;   /* focus rings, hover borders, links */
+      --primary-bg:   #47b0ed;   /* main buttons */
+      --primary-text: #16324f;
+
+      --danger-bg:    #f6c9cf;
+      --danger-text:  #a51651;
+    }
+
+    /* ---------- Base ---------- */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      color: var(--text);
+      font: 16px/1.5 "Instrument Sans", system-ui, sans-serif;
+    }
+
+    main {
+      max-width: 60rem;
+      margin: 0 auto;
+      padding: 2rem clamp(1rem, 4vw, 2rem);
+    }
+
+    /* ---------- Header ---------- */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem clamp(1rem, 4vw, 3rem);
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    #who {
+      margin-right: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ---------- Inputs and buttons ---------- */
+    input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 0.55rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: var(--accent);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    input:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .primary {
+      background: var(--primary-bg);
+      border-color: var(--primary-bg);
+      color: var(--primary-text);
+    }
+
+    .danger {
+      background: var(--danger-bg);
+      border-color: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    /* Small text-style buttons inside each row */
+    .link {
+      padding: 0.25rem 0.5rem;
+      background: none;
+      border: 0;
+      color: var(--accent);
+    }
+
+    .link.delete {
+      color: var(--danger-text);
+    }
+
+    /* ---------- Search bar and messages ---------- */
+    .toolbar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    #message {
+      min-height: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--danger-text);
+    }
+
+    #message.success {
+      color: var(--text-muted);
+    }
+
+    /* ---------- Contact list ---------- */
+    .contact-table {
+      overflow: hidden;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .table-head,
+    .contact-row {
+      display: grid;
+      grid-template-columns: 1.3fr 1.6fr 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.75rem 1.1rem;
+    }
+
+    .table-head {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .contact-row:nth-child(even) {
+      background: var(--row-alt-bg);
+    }
+
+    .contact-row div {
+      overflow-wrap: anywhere;
+    }
+
+    .contact-name {
+      font-weight: 600;
+    }
+
+    .row-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.25rem;
+    }
+
+    .empty-state {
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* ---------- Pagination ---------- */
+    .pager {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      color: var(--text-muted);
+    }
+
+    .pager-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* ---------- Dialogs ---------- */
+    dialog {
+      width: min(26rem, 92vw);
+      padding: 1.5rem;
+      color: var(--text);
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    dialog::backdrop {
+      background: rgba(31, 58, 86, 0.35);
+    }
+
+    dialog h2 {
+      margin: 0 0 1rem;
+      font-size: 1.15rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.8rem;
+      font-weight: 500;
+    }
+
+    label input {
+      margin-top: 0.25rem;
+    }
+
+    .form-error {
+      min-height: 1.4rem;
+      font-size: 0.9rem;
+      color: var(--danger-text);
+    }
+
+    .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    /* ---------- Phones ---------- */
+    @media (max-width: 640px) {
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .table-head {
+        display: none;
+      }
+
+      .contact-row {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+      }
+
+      .row-actions {
+        justify-content: flex-start;
+        margin-top: 0.4rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top bar -->
+  <header>
+    <h1>My Contacts</h1>
+    <div>
+      <span id="who"></span>
+      <button id="logout-btn">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Search and add -->
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search by name, email, or phone" aria-label="Search contacts" autocomplete="off">
+      <button id="add-btn" class="primary">Add contact</button>
+    </div>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <!-- Contact list (rows are added by JavaScript) -->
+    <div class="contact-table">
+      <div class="table-head">
+        <div>Name</div>
+        <div>Email</div>
+        <div>Phone</div>
+        <div></div>
+      </div>
+      <div id="rows"></div>
+    </div>
+
+    <!-- Page controls -->
+    <div class="pager">
+      <span id="page-info"></span>
+      <div class="pager-buttons">
+        <button id="prev-btn">Previous</button>
+        <button id="next-btn">Next</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add / edit dialog -->
+  <dialog id="edit-dialog">
+    <form id="contact-form" method="dialog" novalidate>
+      <h2 id="dialog-title">Add contact</h2>
+
+      <label>First name
+        <input name="firstName" maxlength="50" required autocomplete="off">
+      </label>
+      <label>Last name
+        <input name="lastName" maxlength="50" required autocomplete="off">
+      </label>
+      <label>Email
+        <input name="email" type="email" maxlength="100" required autocomplete="off">
+      </label>
+      <label>Phone number
+        <input name="phoneNumber" type="tel" maxlength="30" required autocomplete="off">
+      </label>
+
+      <div id="form-error" class="form-error"></div>
+
+      <div class="dialog-buttons">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn" class="primary">Save contact</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Delete confirmation dialog -->
+  <dialog id="delete-dialog">
+    <h2>Delete contact?</h2>
+    <p id="delete-text"></p>
+    <div class="dialog-buttons">
+      <button id="delete-cancel-btn">Cancel</button>
+      <button id="delete-confirm-btn" class="danger">Delete contact</button>
+    </div>
+  </dialog>
+
+  <script>
+    // ============================================================
+    // Settings: point these at your API file and your login page
+    // ============================================================
+    const API_URL   = 'index.php';
+    const LOGIN_URL = 'api/index.html';
+    const PAGE_SIZE = 20;               // must match the LIMIT in the API
+
+    const FIELDS = ['firstName', 'lastName', 'email', 'phoneNumber'];
+
+
+    // ============================================================
+    // State
+    // ============================================================
+    let currentPage = 1;
+    let searchText = '';
+    let editingId = null;               // null means "adding a new contact"
+    let deletingId = null;
+    let searchTimer = null;
+
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+    const $ = (id) => document.getElementById(id);
+
+    // Sends a request to the API and returns the parsed JSON.
+    // Sends the user to the login page if the session has expired.
+    async function api(action, { method = 'GET', params = {}, body } = {}) {
+      const query = new URLSearchParams({ action, ...params });
+
+      const response = await fetch(`${API_URL}?${query}`, {
+        method,
+        credentials: 'same-origin',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (e) {
+        // The response had no JSON body; fall through to the status checks
+      }
+
+      if (response.status === 401) {
+        location.href = LOGIN_URL;
+        throw new Error('Please log in');
+      }
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong. Try again.');
+      }
+      return data;
+    }
+
+    // Shows a message above the list. Success messages fade after 3 seconds.
+    function showMessage(text, isSuccess = false) {
+      const box = $('message');
+      box.textContent = text || '';
+      box.className = isSuccess ? 'success' : '';
+
+      if (isSuccess && text) {
+        setTimeout(() => {
+          if (box.textContent === text) box.textContent = '';
+        }, 3000);
+      }
+    }
+
+    // Builds a <div> with plain text (textContent keeps user data safe from HTML injection)
+    function makeCell(text, className) {
+      const div = document.createElement('div');
+      if (className) div.className = className;
+      div.textContent = text;
+      return div;
+    }
+
+    function makeButton(label, className, onClick) {
+      const button = document.createElement('button');
+      button.textContent = label;
+      button.className = className;
+      button.onclick = onClick;
+      return button;
+    }
+
+
+    // ============================================================
+    // Loading and showing contacts
+    // ============================================================
+    function renderContacts(contacts) {
+      const rows = $('rows');
+      rows.replaceChildren();
+
+      if (contacts.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = searchText
+          ? `No contacts match "${searchText}".`
+          : 'You have no contacts yet. Select Add contact to create one.';
+        rows.append(empty);
+        return;
+      }
+
+      contacts.forEach((contact) => {
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+        actions.append(
+          makeButton('Edit',   'link',        () => openEditDialog(contact)),
+          makeButton('Delete', 'link delete', () => openDeleteDialog(contact))
+        );
+
+        const row = document.createElement('div');
+        row.className = 'contact-row';
+        row.append(
+          makeCell(`${contact.firstName} ${contact.lastName}`, 'contact-name'),
+          makeCell(contact.email),
+          makeCell(contact.phoneNumber),
+          actions
+        );
+        rows.append(row);
+      });
+    }
+
+    async function loadContacts() {
+      try {
+        const data = await api('contacts', { params: { q: searchText, page: currentPage } });
+
+        renderContacts(data.contacts);
+
+        $('page-info').textContent = `Page ${currentPage}`;
+        $('prev-btn').disabled = currentPage <= 1;
+        $('next-btn').disabled = data.contacts.length < PAGE_SIZE;
+        showMessage('');
+      } catch (error) {
+        showMessage(error.message);
+      }
+    }
+
+
+    // ============================================================
+    // Add / edit
+    // ============================================================
+    function openEditDialog(contact) {
+      const form = $('contact-form');
+      editingId = contact ? contact.id : null;
+
+      $('dialog-title').textContent = contact ? 'Edit contact' : 'Add contact';
+      FIELDS.forEach((name) => {
+        form.elements[name].value = contact ? contact[name] : '';
+      });
+      $('form-error').textContent = '';
+
+      $('edit-dialog').showModal();
+      form.elements.firstName.focus();
+    }
+
+    async function saveContact(event) {
+      event.preventDefault();
+      const form = event.target;
+
+      // Collect and check the form values
+      const body = {};
+      FIELDS.forEach((name) => {
+        body[name] = form.elements[name].value.trim();
+      });
+
+      if (Object.values(body).some((value) => !value)) {
+        $('form-error').textContent = 'Fill in every field.';
+        return;
+      }
+      if (!form.elements.email.checkValidity()) {
+        $('form-error').textContent = 'Enter a valid email address.';
+        return;
+      }
+
+      // Send to the API: PUT updates an existing contact, POST creates a new one
+      $('save-btn').disabled = true;
+      try {
+        if (editingId) {
+          await api('contacts', {
+            method: 'PUT',
+            params: { id: editingId },
+            body: { ...body, id: editingId }
+          });
+          showMessage('Contact updated.', true);
+        } else {
+          await api('contacts', { method: 'POST', body });
+          showMessage('Contact added.', true);
+        }
+
+        $('edit-dialog').close();
+        loadContacts();
+      } catch (error) {
+        $('form-error').textContent = error.message;
+      }
+      $('save-btn').disabled = false;
+    }
+
+
+    // ============================================================
+    // Delete
+    // ============================================================
+    function openDeleteDialog(contact) {
+      deletingId = contact.id;
+      $('delete-text').textContent =
+        `${contact.firstName} ${contact.lastName} will be removed from your contacts. This can't be undone.`;
+      $('delete-dialog').showModal();
+    }
+
+    async function deleteContact() {
+      try {
+        await api('contacts', { method: 'DELETE', params: { id: deletingId } });
+        $('delete-dialog').close();
+        showMessage('Contact deleted.', true);
+
+        // If that was the last contact on this page, go back one page
+        const rowsLeft = $('rows').querySelectorAll('.contact-row').length;
+        if (rowsLeft === 1 && currentPage > 1) currentPage--;
+
+        loadContacts();
+      } catch (error) {
+        $('delete-dialog').close();
+        showMessage(error.message);
+      }
+    }
+
+
+    // ============================================================
+    // Search, paging, and log out
+    // ============================================================
+    // Waits 300ms after the last keystroke before searching
+    function onSearchInput(event) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchText = event.target.value.trim();
+        currentPage = 1;
+        loadContacts();
+      }, 300);
+    }
+
+    async function logOut() {
+      try {
+        await api('logout', { method: 'POST' });
+      } catch (e) {
+        // Leave the page either way
+      }
+      location.href = LOGIN_URL;
+    }
+
+
+    // ============================================================
+    // Wire up buttons
+    // ============================================================
+    $('add-btn').onclick            = () => openEditDialog(null);
+    $('cancel-btn').onclick         = () => $('edit-dialog').close();
+    $('delete-cancel-btn').onclick  = () => $('delete-dialog').close();
+    $('delete-confirm-btn').onclick = deleteContact;
+    $('prev-btn').onclick           = () => { currentPage--; loadContacts(); };
+    $('next-btn').onclick           = () => { currentPage++; loadContacts(); };
+    $('logout-btn').onclick         = logOut;
+    $('contact-form').addEventListener('submit', saveContact);
+    $('search').addEventListener('input', onSearchInput);
+
+
+    // ============================================================
+    // Start: confirm the user is logged in, then load their contacts
+    // ============================================================
+    (async function start() {
+      try {
+        const me = await api('me');
+        $('who').textContent = `${me.firstName} ${me.lastName}`;
+        loadContacts();
+      } catch (error) {
+        showMessage(error.message);
+      }
+    })();
+  </script>
+</body>
+</html>
