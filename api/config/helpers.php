@@ -89,114 +89,57 @@ function respond($statusCode, $data) {
     exit;
 }
 
-/**
- * Gets and decodes the JSON request body or falls back to $_POST input.
- *
- * @return array
- */
+//Read the JSON object sent by the frontend or Bruno
 function getRequestBody() {
-    $rawInput = file_get_contents('php://input');
-    if (!empty($rawInput)) {
-        $decoded = json_decode($rawInput, true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
-    }
-    return $_POST ?? [];
+    static $body = null;
+    if ($body !== null) return $body;
+    $type = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));
+    if ($type !== 'application/json') respond(415, ['error' => 'Send Content-Type: application/json']);
+    $decoded = json_decode(file_get_contents('php://input'));
+    if (!is_object($decoded)) respond(400, ['error' => 'Send a valid JSON object']);
+    $body = (array) $decoded;
+    return $body;
 }
 
-/**
- * Sanitizes input data by trimming whitespace and stripping HTML tags.
- *
- * @param mixed $data
- * @return mixed
- */
-function clean($data) {
-    if (is_string($data)) {
-        return trim(strip_tags($data));
-    }
-    return $data;
-}
-
-/**
- * Requires authentication and returns the authenticated User ID.
- * Looks for user identification in headers, cookies, session, query parameters, or request body.
- * If unauthenticated, sends a 401 Unauthorized response and exits.
- *
- * @return int User ID
- */
+//Only accept the user ID saved by a successful login
 function requireAuth() {
-    $userId = null;
+    $userId = $_SESSION['userId'] ?? null;
+    if (!is_int($userId) || $userId < 1) respond(401, ['error' => 'Please log in first']);
+    return $userId;
+}
 
-    // 1. Check Authorization Header (Bearer token, raw ID, or JWT)
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] 
-        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
-        ?? (function_exists('apache_request_headers') ? (apache_request_headers()['Authorization'] ?? null) : null);
+//Check text before sending it to a database column
+function textField($body, $key, $max, $required = true) {
+    $value = $body[$key] ?? '';
+    if (!is_string($value)) respond(400, ['error' => "$key must be text"]);
+    $value = trim($value);
+    if ($required && $value === '') respond(400, ['error' => "$key is required"]);
+    if (strlen($value) > $max) respond(400, ['error' => "$key must be $max bytes or fewer"]);
+    return $value;
+}
 
-    if ($authHeader) {
-        $token = trim(preg_replace('/^Bearer\s+/i', '', $authHeader));
-        if (is_numeric($token) && (int)$token > 0) {
-            $userId = (int)$token;
-        } else {
-            // Check if JWT payload contains userId, user_id, or sub
-            $parts = explode('.', $token);
-            if (count($parts) === 3) {
-                $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-                if (is_array($payload)) {
-                    $userId = $payload['userId'] ?? $payload['user_id'] ?? $payload['id'] ?? $payload['sub'] ?? null;
-                }
-            }
-        }
+//Check the password without trimming it, then let PHP hash and salt it
+function hashNewPassword($body) {
+    $password = $body['password'] ?? '';
+    if (!is_string($password) || $password === '' || strlen($password) > 72 || strpos($password, "\0") !== false) {
+        respond(400, ['error' => 'Password must contain 1–72 bytes and no null bytes']);
     }
+    return password_hash($password, PASSWORD_BCRYPT);
+}
 
-    // 2. Check X-User-Id or User-Id custom HTTP header
-    if (!$userId) {
-        $xUserId = $_SERVER['HTTP_X_USER_ID'] ?? $_SERVER['HTTP_USER_ID'] ?? null;
-        if ($xUserId && is_numeric($xUserId) && (int)$xUserId > 0) {
-            $userId = (int)$xUserId;
-        }
-    }
+//Read a positive ID from the URL for the record we want to change
+function requestId($key = 'id') {
+    $id = filter_var($_GET[$key] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if (!$id) respond(400, ['error' => "A valid $key is required"]);
+    return $id;
+}
 
-    // 3. Check Cookie (userId or user_id)
-    if (!$userId && isset($_COOKIE['userId']) && is_numeric($_COOKIE['userId'])) {
-        $userId = (int)$_COOKIE['userId'];
-    } elseif (!$userId && isset($_COOKIE['user_id']) && is_numeric($_COOKIE['user_id'])) {
-        $userId = (int)$_COOKIE['user_id'];
-    }
-
-    // 4. Check Session
-    if (!$userId) {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            @session_start();
-        }
-        if (isset($_SESSION['userId']) && is_numeric($_SESSION['userId'])) {
-            $userId = (int)$_SESSION['userId'];
-        } elseif (isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id'])) {
-            $userId = (int)$_SESSION['user_id'];
-        }
-    }
-
-    // 5. Check Query Parameters (?userId= or ?user_id= or ?uid=)
-    if (!$userId) {
-        $qUserId = $_GET['userId'] ?? $_GET['user_id'] ?? $_GET['uid'] ?? null;
-        if ($qUserId && is_numeric($qUserId) && (int)$qUserId > 0) {
-            $userId = (int)$qUserId;
-        }
-    }
-
-    // 6. Check Request Body (userId or user_id)
-    if (!$userId) {
-        $body = getRequestBody();
-        $bUserId = $body['userId'] ?? $body['user_id'] ?? $body['uid'] ?? null;
-        if ($bUserId && is_numeric($bUserId) && (int)$bUserId > 0) {
-            $userId = (int)$bUserId;
-        }
-    }
-
-    // If still no valid numeric user ID, deny access with 401 Unauthorized
-    if (!$userId || (int)$userId <= 0) {
-        respond(401, ['error' => 'Unauthorized']);
-    }
-
-    return (int)$userId;
+//Use the same four contact fields for adding and editing
+function contactFields($body) {
+    $first = textField($body, 'firstName', 50);
+    $last = textField($body, 'lastName', 50);
+    $email = textField($body, 'email', 100, false);
+    $phone = textField($body, 'phoneNumber', 20, false);
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) respond(400, ['error' => 'Enter a valid email address']);
+    return [$first, $last, $email, $phone];
 }

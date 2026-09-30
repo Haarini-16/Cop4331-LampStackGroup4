@@ -38,7 +38,9 @@ function getDB() {
         } catch (PDOException $e) {
             http_response_code(500);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['error' => 'Database connection error: ' . $e->getMessage()]);
+            //Keep connection details in the server log, not in the response
+            error_log($e->getMessage());
+            echo json_encode(['error' => 'Database connection error']);
             exit;
         }
     }
